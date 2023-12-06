@@ -168,6 +168,9 @@ try:
                                         1] < finger8_y < yelow_rect[1] + yelow_rect[3]:
                                         cv2.putText(frame, "press 5", (yelow_rect[0], yelow_rect[1] - 10),
                                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 2)
+                                        GameBar.start_game_5()
+                                        fl = False
+                                        cv2.destroyWindow("Menu")
                                         # Сброс счётчика для следующей итерации
                                         finger_pressed_time = None
                                         finger_closed = False  # Пальцы разжались
