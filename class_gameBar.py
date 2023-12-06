@@ -49,3 +49,11 @@ class GameBar:
         cv2.destroyWindow("Menu")
         run_detected()
 
+    @staticmethod
+    def start_game_6():
+        """Метод для запуска Научного проекта"""
+        global game_active
+        game_active = True
+        cv2.destroyWindow("Menu")
+        run_detected()
+
