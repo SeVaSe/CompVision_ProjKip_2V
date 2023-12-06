@@ -16,42 +16,50 @@ lives = 3  # Изначальное количество жизней
 
 enemies = []  # Список врагов (круги)
 red_circles = []  # Список красных кругов
+yellow_circles = []  # Список желтых кругов
 num_enemies = 1  # Изначальное количество врагов
 
 # Переменные для отслеживания времени и состояния игры
 start_time = time.time()
 game_over = False
 pixelCoordinatesLandmark = None  # Переменная для хранения координат указательного пальца
+yellow_circle_time = time.time()
+yellow_circle_interval = 15  # Интервал появления желтых кружков
+
 
 def run_circle_reaction_game():
-    global score, level, time_limit, lives, game_over, start_time, enemies, red_circles, num_enemies, pixelCoordinatesLandmark
+    global score, level, time_limit, yellow_circle_time, lives, game_over, start_time, enemies, red_circles, num_enemies, pixelCoordinatesLandmark
 
-    # Функция для генерации врагов (кругов) с заданным количеством
     def generate_enemies(num):
         global enemies
         enemies = [(random.randint(50, 600), random.randint(50, 400)) for _ in range(num)]
 
-    # Функция для генерации красных кругов с заданным количеством
     def generate_red_circles(num):
         global red_circles
-        red_circles = [(random.randint(50, 600), 400) for _ in range(num)]
+        red_circles = [(random.randint(50, 600), 400) for _ in range(random.randint(1, 3))]
 
-    # Функция для отрисовки врагов (кругов)
+    def generate_yellow_circles():
+        global yellow_circles
+        yellow_circles.append((random.randint(50, 600), 400))
+
     def enemy():
         global enemies
         for x_enemy, y_enemy in enemies:
             cv2.circle(image, (x_enemy, y_enemy), 25, (0, 200, 0), 5)
 
-    # Функция для отрисовки красных кругов
     def red_circle():
         global red_circles
         for x_red, y_red in red_circles:
             cv2.circle(image, (x_red, y_red), 25, (0, 0, 200), 5)
 
-    # Функция для отображения экрана с сообщением о конце игры
+    def yellow_circle():
+        global yellow_circles
+        for x_yellow, y_yellow in yellow_circles:
+            cv2.circle(image, (x_yellow, y_yellow), 25, (0, 255, 255), 5)
+
     def game_over_screen():
-        global score, game_over, start_time, num_enemies, lives
-        font = cv2.FONT_HERSHEY_SIMPLEX
+
+        font = cv2.FONT_HERSHEY_COMPLEX
         color = (255, 0, 255)
         text = cv2.putText(image, "Проиграл", (250, 200), font, 2, color, 4, cv2.LINE_AA)
         text = cv2.putText(image, "Ты смог набрать: " + str(score), (300, 300), font, 1, color, 2, cv2.LINE_AA)
@@ -61,10 +69,12 @@ def run_circle_reaction_game():
         num_enemies = 1
         lives = 3  # Сбросить количество жизней
         red_circles.clear()
+        yellow_circles.clear()
 
-    # Инициализация видеопотока с веб-камеры
-    video = cv2.VideoCapture(0)
+
     try:
+        # Инициализация видеопотока с веб-камеры
+        video = cv2.VideoCapture(0)
         with mp_hands.Hands(min_detection_confidence=0.8, min_tracking_confidence=0.5) as hands:
             while video.isOpened():
                 _, frame = video.read()
@@ -93,8 +103,12 @@ def run_circle_reaction_game():
                 if not red_circles and not game_over and score >= 5:
                     generate_red_circles(1)
 
+                if not yellow_circles and not game_over and time.time() - yellow_circle_time > yellow_circle_interval:
+                    generate_yellow_circles()
+
                 enemy()
                 red_circle()
+                yellow_circle()
 
                 if not game_over and results.multi_hand_landmarks:
                     for num, hand in enumerate(results.multi_hand_landmarks):
@@ -121,25 +135,31 @@ def run_circle_reaction_game():
                                                 pixelCoordinatesLandmark[1] - y_red) < 25:
                                             del red_circles[i]
                                             lives -= 1
+                                    for i, (x_yellow, y_yellow) in enumerate(yellow_circles):
+                                        if abs(pixelCoordinatesLandmark[0] - x_yellow) < 25 and abs(
+                                                pixelCoordinatesLandmark[1] - y_yellow) < 25:
+                                            del yellow_circles[i]
+                                            lives += 1
 
-                # Проверка касаний бортов окна
                 if not game_over and pixelCoordinatesLandmark is not None:
-                    if pixelCoordinatesLandmark[0] < 50 or pixelCoordinatesLandmark[0] > 600 or \
-                       pixelCoordinatesLandmark[1] < 50 or pixelCoordinatesLandmark[1] > 600:
-                        lives -= 1
-                    if lives <= 0:
-                        game_over_screen()
-                        game_over = True
-                        cv2.destroyAllWindows()
-                        print(f"Ты набрал: {score} очка")
-                        sys.exit()  # Завершить программу
+                    # Проверяем, касается ли кружок синего цвета (game over при касании красных кружков)
+                    for i, (x_red, y_red) in enumerate(red_circles):
+                        if abs(pixelCoordinatesLandmark[0] - x_red) < 25 and abs(pixelCoordinatesLandmark[1] - y_red) < 25:
+                            del red_circles[i]
+                            lives -= 1
+                            if lives <= 0:
+                                game_over_screen()
+                                game_over = True
+                                cv2.destroyAllWindows()
+                                print(f"Ты набрал: {score} очка")
+                                sys.exit()  # Завершить программу
 
-                # Двигаем красные кружки вверх
+                if time.time() - yellow_circle_time > yellow_circle_interval:
+                    yellow_circle_time = time.time()
+
                 if not game_over:
                     for i in range(len(red_circles)):
                         red_circles[i] = (red_circles[i][0], red_circles[i][1] - 5)
-
-                        # Если красный кружок вышел за границу экрана, удаляем его
                         if red_circles[i][1] < 0:
                             del red_circles[i]
                             break
@@ -156,6 +176,7 @@ def run_circle_reaction_game():
                     num_enemies = 1
                     lives = 3  # Сбросить количество жизней
                     red_circles.clear()
+                    yellow_circles.clear()
                     continue  # Перезапустить основной цикл игры
 
                 if score >= level * 10:
@@ -167,9 +188,11 @@ def run_circle_reaction_game():
         cv2.destroyAllWindows()
         subprocess.run(["C:/PYTHON_/_PROJECT_PYTHON/Python_Project_Other/CompVision_ProjKip_2V/venv/Scripts/python.exe", "menu.py"])
         sys.exit()  # Завершить программу
-    except:
+    except Exception as e:
         video.release()
         cv2.destroyAllWindows()
-        print("С кружками что-то не так")
+        print("С кружками что-то не так1")
+        print("Ошибка при выполнении: ", e)
+
         subprocess.run(["C:/PYTHON_/_PROJECT_PYTHON/Python_Project_Other/CompVision_ProjKip_2V/venv/Scripts/python.exe", "menu.py"])
         sys.exit()  # Завершить программу

@@ -94,7 +94,7 @@ def run_science_project():
 
         cv2.imshow('Full Body Detection', frame)
 
-        if cv2.waitKey(1) & 0xFF == 27:
+        if cv2.waitKey(1) & 0xFF == ord('q'):
             break
             # print("Пока2")
             # cv2.destroyAllWindows()
@@ -105,6 +105,5 @@ def run_science_project():
     cv2.destroyAllWindows()
     print("Пока3")
     subprocess.run(
-        ["C:/PYTHON_/_PROJECT_PYTHON/Python_Project_Other/CompVision_ProjKip_2V/venv/Scripts/python.exe", "menu.py"])
-
+        ["C:/PYTHON_/_PROJECT_PYTHON/Python_Project_Other/CompVision_ProjKip/venv/Scripts/python.exe", "menu.py"])
     sys.exit()
