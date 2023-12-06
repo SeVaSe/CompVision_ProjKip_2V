@@ -2,18 +2,12 @@ import cv2
 import mediapipe as mp
 import threading
 import math
+import time
 
 from class_gameBar import GameBar
 
 
 
-################################################################################################
-# Импортируем функции запуска различных игр !!!! создан класс для запуска проектов, подключение не требуется
-# from game_snake import run_snake_game
-# from game_pin_pong import run_pin_pong_game
-# from game_circle_reaction import run_circle_reaction_game
-# from science_project_growth import run_science_project
-################################################################################################
 
 
 # Функция для вычисления расстояния между двумя точками на плоскости
@@ -23,45 +17,29 @@ def calculate_distance(point1, point2):
     return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
 
-################################################################################################
-# подключен класс с запуском проектов
-# Функции для запуска различных игр   !!!!!!! перенос в класс
-# def start_game():
-#     global game_active
-#     game_active = True
-#     cv2.destroyWindow("Menu")
-#     run_snake_game()
-#
-# def start_game_2():
-#     global game_active
-#     game_active = True
-#     cv2.destroyWindow("Menu")
-#     run_pin_pong_game()
-#
-# def start_game_3():
-#     global game_active
-#     game_active = True
-#     cv2.destroyWindow("Menu")
-#     run_circle_reaction_game()
-#
-# def start_game_4():
-#     global game_active
-#     game_active = True
-#     cv2.destroyWindow("Menu")
-#     run_science_project()
-################################################################################################
-
+def draw_rounded_rectangle(img, rect, color, thickness=1, radius=10):
+    x, y, w, h = rect
+    cv2.rectangle(img, (x, y + radius), (x + w, y + h - radius), color, thickness)
+    cv2.rectangle(img, (x + radius, y), (x + w - radius, y + h), color, thickness)
+    cv2.circle(img, (x + radius, y + radius), radius, color, thickness)
+    cv2.circle(img, (x + w - radius, y + radius), radius, color, thickness)
+    cv2.circle(img, (x + radius, y + h - radius), radius, color, thickness)
+    cv2.circle(img, (x + w - radius, y + h - radius), radius, color, thickness)
 
 
 # Импорт модулей MediaPipe для работы с руки и отслеживания жестов
 mp_drawing = mp.solutions.drawing_utils
 mp_hands = mp.solutions.hands
 
+# переменные для отслеживания времени зажатия пальца
+finger_pressed_time = None
+finger_closed = False  # Переменная для отслеживания сжатия пальцев
+
 # Начальные координаты и размеры прямоугольника на экране
 rectangle_x = 30
 rectangle_y = 30
-rectangle_width = 220
-rectangle_height = 100
+rectangle_width = 180 #220
+rectangle_height = 80 #100
 
 # Частота кадров и статус активности игры
 frame_rate = 30
@@ -73,11 +51,13 @@ pointer_finger_closed = False
 thumb_finger_closed = False
 
 # Определение переменных для дополнительных прямоугольников
-pink_rect = (30, 350, 220, 100)
-yelow_rect = (30, 200, 220, 100)
-red_rect = (400, 350, 220, 100)
-blue_rect = (400, 30, 220, 100)
-green_rect = (30, 30, 220, 100)
+green_rect = (30, 50, rectangle_width, rectangle_height)
+blue_rect = (30, 150, rectangle_width, rectangle_height)
+pink_rect = (30, 250, rectangle_width, rectangle_height)
+red_rect = (30, 350, rectangle_width, rectangle_height)
+
+yelow_rect = (400, 50, rectangle_width, rectangle_height)
+
 
 try:
     while fl:
@@ -111,77 +91,115 @@ try:
                             # Вычисляем расстояние между пальцами
                             distance = calculate_distance((finger8_x, finger8_y), (finger4_x, finger4_y))
 
+                            # Определение, открыты ли указательный и большой пальцы
                             # Определяем, закрыты ли указательный и большой пальцы
                             if distance < 30:
-                                pointer_finger_closed = True
+                                finger_open = True
                             else:
-                                pointer_finger_closed = False
+                                finger_open = False
 
                             if distance < 30:
-                                thumb_finger_closed = True
+                                finger_open = True
                             else:
-                                thumb_finger_closed = False
+                                finger_open = False
 
-                            # Отслеживание нажатий на прямоугольники и отображение меток
-                            if pointer_finger_closed and thumb_finger_closed:
-                                # Запуск игры "Змейка"
-                                if rectangle_x < finger8_x < rectangle_x + rectangle_width and rectangle_y < finger8_y < rectangle_y + rectangle_height:
-                                    GameBar.start_game_1()
-                                    fl = False
-                                    cv2.destroyWindow("Menu")
-                                    break
+                            # Отслеживание событий с пальцами
+                            if finger_open:
+                                if not finger_closed:  # Если пальцы были открыты, а теперь сжаты
+                                    finger_pressed_time = time.time()  # Запоминаем время начала сжатия
+                                    finger_closed = True  # Обновляем статус сжатия пальцев
 
-                                # Запуск игры "Пин-Понг"
-                                if blue_rect[0] < finger8_x < blue_rect[0] + blue_rect[2] and blue_rect[1] < finger8_y < blue_rect[1] + blue_rect[3]:
-                                    cv2.putText(frame, "press 2", (blue_rect[0], blue_rect[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 2)
-                                    GameBar.start_game_2()
-                                    fl = False
-                                    cv2.destroyWindow("Menu")
-                                    break
+                                # Проверка времени сжатия
+                                if time.time() - finger_pressed_time >= 1.5:
+                                    # Запуск игры "Змейка"
+                                    if rectangle_x < finger8_x < rectangle_x + rectangle_width and rectangle_y < finger8_y < rectangle_y + rectangle_height:
+                                        GameBar.start_game_1()
+                                        fl = False
+                                        cv2.destroyWindow("Menu")
+                                        # Сброс счётчика для следующей итерации
+                                        finger_pressed_time = None
+                                        finger_closed = False  # Пальцы разжались
+                                        break
+
+                                if time.time() - finger_pressed_time >= 1.5:
+                                    # Запуск игры "Пин-Понг"
+                                    if blue_rect[0] < finger8_x < blue_rect[0] + blue_rect[2] and blue_rect[1] < finger8_y < \
+                                            blue_rect[1] + blue_rect[3]:
+                                        cv2.putText(frame, "press 2", (blue_rect[0], blue_rect[1] - 10),
+                                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 2)
+                                        GameBar.start_game_2()
+                                        fl = False
+                                        cv2.destroyWindow("Menu")
+                                        # Сброс счётчика для следующей итерации
+                                        finger_pressed_time = None
+                                        finger_closed = False  # Пальцы разжались
+                                        break
 
                                 # Запуск игры "Реакция"
-                                if pink_rect[0] < finger8_x < pink_rect[0] + pink_rect[2] and pink_rect[1] < finger8_y < pink_rect[1] + pink_rect[3]:
-                                    cv2.putText(frame, "press 3", (pink_rect[0], pink_rect[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 2)
-                                    GameBar.start_game_3()
-                                    fl = False
-                                    cv2.destroyWindow("Menu")
-                                    break
+                                if time.time() - finger_pressed_time >= 1.5:
+                                    if pink_rect[0] < finger8_x < pink_rect[0] + pink_rect[2] and pink_rect[1] < finger8_y < \
+                                            pink_rect[1] + pink_rect[3]:
+                                        cv2.putText(frame, "press 3", (pink_rect[0], pink_rect[1] - 10),
+                                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 2)
+                                        GameBar.start_game_3()
+                                        fl = False
+                                        cv2.destroyWindow("Menu")
+                                        # Сброс счётчика для следующей итерации
+                                        finger_pressed_time = None
+                                        finger_closed = False  # Пальцы разжались
+                                        break
 
                                 # Обработка действий внутри красного прямоугольника
-                                if red_rect[0] < finger8_x < red_rect[0] + red_rect[2] and red_rect[1] < finger8_y < red_rect[1] + red_rect[3]:
-                                    cv2.putText(frame, "press 4", (pink_rect[0], pink_rect[1] - 10),
-                                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 2)
-                                    GameBar.start_game_4()
-                                    fl = False
-                                    cv2.destroyWindow("Menu")
-                                    break
+                                if time.time() - finger_pressed_time >= 1.5:
+                                    if red_rect[0] < finger8_x < red_rect[0] + red_rect[2] and red_rect[1] < finger8_y < \
+                                            red_rect[1] + red_rect[3]:
+                                        cv2.putText(frame, "press 4", (pink_rect[0], pink_rect[1] - 10),
+                                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 2)
+                                        GameBar.start_game_4()
+                                        fl = False
+                                        cv2.destroyWindow("Menu")
+                                        # Сброс счётчика для следующей итерации
+                                        finger_pressed_time = None
+                                        finger_closed = False  # Пальцы разжались
+                                        break
 
-                                if yelow_rect[0] < finger8_x < yelow_rect[0] + yelow_rect[2] and yelow_rect[1] < finger8_y < yelow_rect[1] + yelow_rect[3]:
-                                    cv2.putText(frame, "press 5", (yelow_rect[0], yelow_rect[1] - 10),
-                                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 2)
+                                if time.time() - finger_pressed_time >= 1.5:
+                                    if yelow_rect[0] < finger8_x < yelow_rect[0] + yelow_rect[2] and yelow_rect[
+                                        1] < finger8_y < yelow_rect[1] + yelow_rect[3]:
+                                        cv2.putText(frame, "press 5", (yelow_rect[0], yelow_rect[1] - 10),
+                                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 200, 255), 2)
+                                        # Сброс счётчика для следующей итерации
+                                        finger_pressed_time = None
+                                        finger_closed = False  # Пальцы разжались
+                                        break
+                            else:
+                                # Если пальцы разжались до прошествия 2 секунд
+                                finger_pressed_time = None
+                                finger_closed = False  # Пальцы разжались
 
-                                    break
                 overlay = frame.copy()
 
 
                 ################################################################################################
-                # Отображение меток и прямоугольников для разных игр
-                cv2.putText(frame, "РЕАКЦИЯ", (pink_rect[0], pink_rect[1] + 60), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
-                cv2.rectangle(overlay, pink_rect[:2], (pink_rect[0] + pink_rect[2], pink_rect[1] + pink_rect[3]), (255, 105, 180), -1)
+                # Новые цвета для кнопок
+                button_colors = [(255, 105, 180), (255, 208, 0), (89, 44, 212), (255, 0, 0), (0, 255, 0)]
+                text_color = (255, 255, 255)  # Цвет текста на кнопках
+                button_texts = ["РЕАКЦИЯ", "ДЕТЕКТ", "НАУЧНЫЙ", "ПИН-ПОНГ", "ЗМЕЙКА"]
 
-                cv2.putText(frame, "ДЕТЕКТ", (yelow_rect[0], yelow_rect[1] + 60), cv2.FONT_HERSHEY_COMPLEX, 1,
-                            (255, 255, 255), 2)
-                cv2.rectangle(overlay, yelow_rect[:2], (yelow_rect[0] + yelow_rect[2], yelow_rect[1] + yelow_rect[3]),
-                              (255, 255, 212), -1)
 
-                cv2.putText(frame, "НАУЧНЫЙ", (red_rect[0], red_rect[1] + 60), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
-                cv2.rectangle(overlay, red_rect[:2], (red_rect[0] + red_rect[2], red_rect[1] + red_rect[3]), (89, 44, 212), -1)
+                # Функция для создания закругленного прямоугольника
+                # Отрисовка кнопок с новыми стилями
+                for i, rect in enumerate([pink_rect, yelow_rect, red_rect, blue_rect, green_rect]):
+                    button_color = button_colors[i]
 
-                cv2.putText(frame, "ПИН-ПОНГ", (blue_rect[0], blue_rect[1] + 60), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
-                cv2.rectangle(overlay, blue_rect[:2], (blue_rect[0] + blue_rect[2], blue_rect[1] + blue_rect[3]), (255, 0, 0), -1)
+                    # Создание закругленного прямоугольника кнопки
+                    draw_rounded_rectangle(overlay, rect, button_color, thickness=-1, radius=20)
 
-                cv2.putText(frame, "ЗМЕЙКА", (green_rect[0], green_rect[1] + 60), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 2)
-                cv2.rectangle(overlay, green_rect[:2], (green_rect[0] + green_rect[2], green_rect[1] + green_rect[3]), (0, 255, 0), -1)
+                    # Отрисовка текста на кнопке
+                    text_size = cv2.getTextSize(button_texts[i], cv2.FONT_HERSHEY_COMPLEX, 1, 2)[0]
+                    text_x = rect[0] + int((rect[2] - text_size[0]) / 2)
+                    text_y = rect[1] + 60
+                    cv2.putText(overlay, button_texts[i], (text_x, text_y), cv2.FONT_HERSHEY_COMPLEX, 1, text_color, 2)
 
                 cv2.addWeighted(overlay, 0.5, frame, 1 - 0.5, 0, frame)
 
