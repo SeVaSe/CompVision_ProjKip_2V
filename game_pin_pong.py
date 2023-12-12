@@ -12,7 +12,7 @@ def run_pin_pong_game():
         hands = mp_hands.Hands()
 
         # Инициализация OpenCV
-        cap = cv2.VideoCapture(0)  # Захват видеопотока с камеры
+        cap = cv2.VideoCapture(1)  # Захват видеопотока с камеры
         width = int(cap.get(3))  # Ширина кадра
         height = int(cap.get(4))  # Высота кадра
 

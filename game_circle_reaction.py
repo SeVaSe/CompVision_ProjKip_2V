@@ -74,7 +74,7 @@ def run_circle_reaction_game():
 
     try:
         # Инициализация видеопотока с веб-камеры
-        video = cv2.VideoCapture(0)
+        video = cv2.VideoCapture(1)
         with mp_hands.Hands(min_detection_confidence=0.8, min_tracking_confidence=0.5) as hands:
             while video.isOpened():
                 _, frame = video.read()

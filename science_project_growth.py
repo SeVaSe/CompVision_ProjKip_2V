@@ -11,7 +11,7 @@ def run_science_project():
     mp_drawing = mp.solutions.drawing_utils
 
     # Инициализация камеры (0 - встроенная или подключенная веб-камера)
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
 
     # Инициализация детектора тела
     holistic = mp_holistic.Holistic()

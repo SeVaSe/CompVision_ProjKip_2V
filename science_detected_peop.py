@@ -32,7 +32,7 @@ def run_detected():
         # Инициализация модели
         pose = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.5, min_tracking_confidence=0.5)
 
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(1)
 
         while cap.isOpened():
             success, frame = cap.read()

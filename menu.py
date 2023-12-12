@@ -63,7 +63,7 @@ try:
     while fl:
         if not game_active:
             # Инициализация видеозахвата с веб-камеры
-            cap = cv2.VideoCapture(0)
+            cap = cv2.VideoCapture(1)
 
             while cap.isOpened():
                 ret, frame = cap.read()
@@ -110,7 +110,7 @@ try:
                                     finger_closed = True  # Обновляем статус сжатия пальцев
 
                                 # Проверка времени сжатия
-                                if time.time() - finger_pressed_time >= 1.5:
+                                if time.time() - finger_pressed_time >= 0.8:
                                     # Запуск игры "Змейка"
                                     if rectangle_x < finger8_x < rectangle_x + rectangle_width and rectangle_y < finger8_y < rectangle_y + rectangle_height:
                                         GameBar.start_game_1()

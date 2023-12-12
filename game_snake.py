@@ -44,7 +44,7 @@ def run_snake_game():
         fruit = generate_fruit_location()
         special_fruit = generate_special_fruit_location()
 
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(1)
 
         with mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5) as hands:
             while True:
